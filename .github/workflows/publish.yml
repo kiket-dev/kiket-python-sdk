@@ -1,0 +1,87 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'python-v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/python-v}" >> $GITHUB_OUTPUT
+
+      - name: Verify pyproject.toml version matches tag
+        working-directory: sdk/python
+        run: |
+          PYPROJECT_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          if [ "$PYPROJECT_VERSION" != "${{ steps.version.outputs.VERSION }}" ]; then
+            echo "Version mismatch: pyproject.toml has $PYPROJECT_VERSION but tag is ${{ steps.version.outputs.VERSION }}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        working-directory: sdk/python
+        run: |
+          uv pip install --system build twine
+
+      - name: Run tests
+        working-directory: sdk/python
+        env:
+          PYTHONPATH: .
+        run: |
+          uv pip install --system -e ".[dev]"
+          uv run --system pytest
+
+      - name: Build distributables
+        working-directory: sdk/python
+        run: |
+          uv run --system python -m build
+
+      - name: Publish to PyPI
+        working-directory: sdk/python
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          uv run --system python -m twine upload dist/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: python-v${{ steps.version.outputs.VERSION }}
+          name: Python SDK v${{ steps.version.outputs.VERSION }}
+          body: |
+            Release of kiket-sdk (Python) version ${{ steps.version.outputs.VERSION }}
+
+            ## Installation
+            ```bash
+            pip install kiket-sdk==${{ steps.version.outputs.VERSION }}
+            # or
+            uv add kiket-sdk@${{ steps.version.outputs.VERSION }}
+            ```
+
+            ## Changes
+            See [CHANGELOG.md](https://github.com/kiket/kiket-python-sdk/blob/main/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
