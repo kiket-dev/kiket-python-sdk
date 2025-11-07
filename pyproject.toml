@@ -26,6 +26,7 @@ Issues = "https://github.com/kiket-dev/kiket/issues"
 dev = [
   "pytest>=8.2",
   "pytest-asyncio>=0.23",
+  "pytest-cov>=4.0",
   "ruff>=0.6",
   "mypy>=1.10",
   "types-PyYAML>=6.0",
