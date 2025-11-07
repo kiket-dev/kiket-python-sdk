@@ -34,14 +34,14 @@ def sign_payload(
     extra_headers: dict[str, str] | None = None,
 ) -> dict[str, object]:
     body = json.dumps(payload)
-    import hmac
     import hashlib
+    import hmac
 
     signature = hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
     headers = {
         "Content-Type": "application/json",
         "X-Kiket-Signature": signature,
-        "X-Kiket-Timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "X-Kiket-Timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
     }
     if extra_headers:
         headers.update(extra_headers)

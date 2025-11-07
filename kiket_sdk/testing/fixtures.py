@@ -1,7 +1,8 @@
 """Pytest fixtures for extension testing."""
 from __future__ import annotations
 
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from typing import Any
 
 try:  # pragma: no cover - optional dependency
     import pytest
@@ -11,19 +12,18 @@ except ImportError:  # pragma: no cover - fixture module available only with pyt
 from fastapi.testclient import TestClient
 
 from kiket_sdk import KiketSDK
-from kiket_sdk.auth import verify_signature
 
 
-def webhook_payload_factory(secret: str | None = None) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
+def webhook_payload_factory(secret: str | None = None) -> Callable[[dict[str, Any]], dict[str, Any]]:
     """Return a factory that produces signed webhook payloads."""
 
-    def factory(body: Dict[str, Any]) -> Dict[str, Any]:
-        import json
-        import hmac
+    def factory(body: dict[str, Any]) -> dict[str, Any]:
         import hashlib
+        import hmac
+        import json
 
         payload = json.dumps(body)
-        headers: Dict[str, str] = {
+        headers: dict[str, str] = {
             "Content-Type": "application/json",
             "X-Kiket-Timestamp": "1970-01-01T00:00:00Z",
         }

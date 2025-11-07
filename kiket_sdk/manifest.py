@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 import yaml
 
@@ -26,24 +25,24 @@ class ExtensionManifest:
     """Container for manifest metadata."""
 
     path: Path
-    raw: Dict
+    raw: dict
 
     @property
-    def extension_id(self) -> Optional[str]:
+    def extension_id(self) -> str | None:
         return (
             self.raw.get("id")
             or self.raw.get("extension", {}).get("id")
         )
 
     @property
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         return (
             self.raw.get("version")
             or self.raw.get("extension", {}).get("version")
         )
 
     @property
-    def delivery_secret(self) -> Optional[str]:
+    def delivery_secret(self) -> str | None:
         delivery = (
             self.raw.get("delivery")
             or self.raw.get("extension", {}).get("delivery")
@@ -56,7 +55,7 @@ class ExtensionManifest:
         secret = callback.get("secret")
         return resolve_env_reference(secret)
 
-    def configuration_properties(self) -> Dict[str, Dict]:
+    def configuration_properties(self) -> dict[str, dict]:
         config = (
             self.raw.get("configuration")
             or self.raw.get("extension", {}).get("configuration")
@@ -67,8 +66,8 @@ class ExtensionManifest:
             return {}
         return properties
 
-    def settings_defaults(self) -> Dict[str, object]:
-        defaults: Dict[str, object] = {}
+    def settings_defaults(self) -> dict[str, object]:
+        defaults: dict[str, object] = {}
         for key, meta in self.configuration_properties().items():
             if not isinstance(meta, dict):
                 continue
@@ -77,7 +76,7 @@ class ExtensionManifest:
                 defaults[key] = value
         return defaults
 
-    def secret_keys(self) -> Tuple[str, ...]:
+    def secret_keys(self) -> tuple[str, ...]:
         secrets = []
         for key, meta in self.configuration_properties().items():
             if isinstance(meta, dict) and meta.get("secret"):
@@ -85,9 +84,9 @@ class ExtensionManifest:
         return tuple(secrets)
 
 
-def load_manifest(path: Optional[str] = None) -> Optional[ExtensionManifest]:
+def load_manifest(path: str | None = None) -> ExtensionManifest | None:
     """Load an extension manifest from the provided path or default candidates."""
-    candidate_path: Optional[Path] = None
+    candidate_path: Path | None = None
 
     if path:
         candidate_path = Path(path)
@@ -107,7 +106,7 @@ def load_manifest(path: Optional[str] = None) -> Optional[ExtensionManifest]:
     return ExtensionManifest(candidate_path, data or {})
 
 
-def _load_yaml(path: Path) -> Dict:
+def _load_yaml(path: Path) -> dict:
     content = path.read_text(encoding="utf-8")
     payload = yaml.safe_load(content)
     if isinstance(payload, dict):
@@ -116,9 +115,9 @@ def _load_yaml(path: Path) -> Dict:
 
 
 def apply_secret_env_overrides(
-    settings: Dict[str, object],
-    secret_keys: Tuple[str, ...],
-) -> Dict[str, object]:
+    settings: dict[str, object],
+    secret_keys: tuple[str, ...],
+) -> dict[str, object]:
     """Overlay configuration settings with environment-provided secret values."""
     merged = dict(settings)
     for key in secret_keys:

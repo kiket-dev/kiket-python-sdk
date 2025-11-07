@@ -1,10 +1,12 @@
 """Helpers for managing extension secrets via the Kiket API."""
 from __future__ import annotations
 
+import builtins
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .exceptions import OutboundRequestError, SecretStoreError
 from .utils import environment_secret_name
@@ -13,7 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover - import for typing only
     from .client import KiketClient
 
 
-def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
+def _parse_timestamp(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
@@ -27,8 +29,8 @@ def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
 @dataclass(slots=True)
 class SecretMetadata:
     key: str
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    created_at: datetime | None
+    updated_at: datetime | None
 
 
 @dataclass(slots=True)
@@ -39,14 +41,14 @@ class SecretValue(SecretMetadata):
 class ExtensionSecretManager:
     """High-level helper for CRUD operations on extension secrets."""
 
-    def __init__(self, client: "KiketClient", extension_id: Optional[str] = None) -> None:
+    def __init__(self, client: KiketClient, extension_id: str | None = None) -> None:
         self._client = client
         self._extension_id = extension_id
 
-    def with_extension(self, extension_id: str) -> "ExtensionSecretManager":
+    def with_extension(self, extension_id: str) -> ExtensionSecretManager:
         return ExtensionSecretManager(self._client, extension_id)
 
-    async def list(self, *, extension_id: Optional[str] = None) -> List[SecretMetadata]:
+    async def list(self, *, extension_id: str | None = None) -> builtins.list[SecretMetadata]:
         ext = self._resolve_extension_id(extension_id)
         try:
             response = await self._client.get(f"/api/v1/extensions/{ext}/secrets")
@@ -66,7 +68,7 @@ class ExtensionSecretManager:
             for item in payload
         ]
 
-    async def get(self, key: str, *, extension_id: Optional[str] = None) -> SecretValue:
+    async def get(self, key: str, *, extension_id: str | None = None) -> SecretValue:
         env_secret = _get_env_secret(key)
         if env_secret is not None:
             return SecretValue(
@@ -93,7 +95,7 @@ class ExtensionSecretManager:
             value=str(data["value"]),
         )
 
-    async def set(self, key: str, value: str, *, extension_id: Optional[str] = None) -> None:
+    async def set(self, key: str, value: str, *, extension_id: str | None = None) -> None:
         if not value:
             raise SecretStoreError("Secret value cannot be blank")
 
@@ -104,21 +106,21 @@ class ExtensionSecretManager:
         except OutboundRequestError as exc:
             raise SecretStoreError(f"Failed to persist secret '{key}' for extension '{ext}'") from exc
 
-    async def delete(self, key: str, *, extension_id: Optional[str] = None) -> None:
+    async def delete(self, key: str, *, extension_id: str | None = None) -> None:
         ext = self._resolve_extension_id(extension_id)
         try:
             await self._client.delete(f"/api/v1/extensions/{ext}/secrets/{key}")
         except OutboundRequestError as exc:
             raise SecretStoreError(f"Failed to delete secret '{key}' for extension '{ext}'") from exc
 
-    def _resolve_extension_id(self, explicit: Optional[str]) -> str:
+    def _resolve_extension_id(self, explicit: str | None) -> str:
         resolved = explicit or self._extension_id
         if not resolved:
             raise SecretStoreError("Extension ID is required when managing secrets")
         return resolved
 
 
-def _get_env_secret(key: str) -> Optional[str]:
+def _get_env_secret(key: str) -> str | None:
     env_name = environment_secret_name(key)
     value = os.getenv(env_name)
     return value if value is not None else None

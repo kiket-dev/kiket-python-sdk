@@ -1,7 +1,8 @@
 """HTTP client helpers for interacting with the Kiket API."""
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 import httpx
 
@@ -14,7 +15,7 @@ class KiketClient:
     def __init__(
         self,
         base_url: str,
-        workspace_token: Optional[str],
+        workspace_token: str | None,
         *,
         timeout: float = 15.0,
     ) -> None:
@@ -22,7 +23,7 @@ class KiketClient:
         self.workspace_token = workspace_token
         self._client = httpx.AsyncClient(base_url=self.base_url, timeout=timeout)
 
-    async def __aenter__(self) -> "KiketClient":
+    async def __aenter__(self) -> KiketClient:
         await self._client.__aenter__()
         return self
 

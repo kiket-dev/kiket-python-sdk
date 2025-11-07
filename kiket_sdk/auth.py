@@ -1,10 +1,10 @@
 """Authentication utilities."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-import hmac
 import hashlib
-from typing import Mapping
+import hmac
+from collections.abc import Mapping
+from datetime import UTC, datetime
 
 from .exceptions import AuthenticationError
 
@@ -46,7 +46,7 @@ def _validate_timestamp(timestamp: str) -> None:
     except ValueError as exc:  # pragma: no cover - invalid timestamp
         raise AuthenticationError("Invalid X-Kiket-Timestamp header") from exc
 
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     delta = abs((now - request_time).total_seconds())
     if delta > ALLOWED_SKEW_SECONDS:
         raise AuthenticationError("Request timestamp outside allowed window")

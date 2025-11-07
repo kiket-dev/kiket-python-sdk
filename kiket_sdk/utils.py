@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Optional
 
 ENV_SECRET_PREFIX = "KIKET_SECRET_"
 
@@ -15,7 +14,7 @@ def environment_secret_name(key: str) -> str:
     return f"{ENV_SECRET_PREFIX}{normalized}"
 
 
-def resolve_env_reference(value: Optional[str]) -> Optional[str]:
+def resolve_env_reference(value: str | None) -> str | None:
     """Resolve ``env:VARIABLE`` references, returning the environment value when present."""
     if not isinstance(value, str):
         return value

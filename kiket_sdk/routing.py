@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Awaitable, Callable, Dict, List, Tuple
+from collections.abc import Awaitable, Callable
 
 Handler = Callable[..., Awaitable[object] | object]
 
@@ -21,8 +21,8 @@ def webhook(event: str, *, version: str) -> Callable[[Handler], Handler]:
     """
 
     def decorator(func: Handler) -> Handler:
-        setattr(func, "__kiket_event__", event)
-        setattr(func, "__kiket_version__", version)
+        func.__kiket_event__ = event
+        func.__kiket_version__ = version
         return func
 
     return decorator
@@ -32,13 +32,13 @@ class HandlerRegistry:
     """In-memory registry mapping event type to handler callables per version."""
 
     def __init__(self) -> None:
-        self._handlers: Dict[str, Dict[str, Handler]] = defaultdict(dict)
+        self._handlers: dict[str, dict[str, Handler]] = defaultdict(dict)
 
     def register(self, event: str, handler: Handler, *, version: str) -> None:
         validated = _coerce_version(version)
         self._handlers[event][validated] = handler
 
-    def get(self, event: str, version: str | None) -> Tuple[Handler, str] | None:
+    def get(self, event: str, version: str | None) -> tuple[Handler, str] | None:
         if version is None:
             return None
 
@@ -52,14 +52,14 @@ class HandlerRegistry:
             return None
         return handler, validated
 
-    def all(self) -> Dict[str, Dict[str, Handler]]:
+    def all(self) -> dict[str, dict[str, Handler]]:
         return {event: handlers.copy() for event, handlers in self._handlers.items()}
 
-    def events(self) -> Dict[str, Dict[str, Handler]]:
+    def events(self) -> dict[str, dict[str, Handler]]:
         """Return the registered handlers without exposing the internal dict."""
         return self.all()
 
-    def event_names(self) -> List[str]:
+    def event_names(self) -> list[str]:
         return sorted(f"{event}@{version}" for event, versions in self._handlers.items() for version in versions.keys())
 
 

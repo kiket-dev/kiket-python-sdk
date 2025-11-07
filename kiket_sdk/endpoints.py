@@ -1,7 +1,7 @@
 """High-level client for Kiket extension endpoints."""
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .client import KiketClient
 from .secrets import ExtensionSecretManager
@@ -13,16 +13,16 @@ class ExtensionEndpoints:
     def __init__(
         self,
         client: KiketClient,
-        extension_id: Optional[str] = None,
+        extension_id: str | None = None,
         *,
-        event_version: Optional[str] = None,
+        event_version: str | None = None,
     ) -> None:
         self._client = client
         self.secrets = ExtensionSecretManager(client, extension_id)
         self._event_version = event_version
 
     async def log_event(self, message: str, **metadata: Any) -> None:
-        payload: Dict[str, Any] = {"message": message, "metadata": metadata}
+        payload: dict[str, Any] = {"message": message, "metadata": metadata}
         await self._client.post(
             "/api/v1/extensions/logs",
             json=payload,
@@ -45,7 +45,7 @@ class ExtensionEndpoints:
             headers=self._version_headers(),
         )
 
-    def _version_headers(self) -> Dict[str, str]:
+    def _version_headers(self) -> dict[str, str]:
         if not self._event_version:
             return {}
         return {"X-Kiket-Event-Version": self._event_version}

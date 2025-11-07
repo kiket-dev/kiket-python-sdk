@@ -1,8 +1,9 @@
 """Configuration helpers for KikET extensions."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Optional
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -52,11 +53,11 @@ class ExtensionConfig:
     workspace_token: str | None = None
     base_url: str = "https://kiket.dev"
     settings: ExtensionSettings = field(default_factory=ExtensionSettings)
-    extension_id: Optional[str] = None
-    extension_version: Optional[str] = None
+    extension_id: str | None = None
+    extension_version: str | None = None
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> "ExtensionConfig":
+    def from_mapping(cls, data: Mapping[str, Any]) -> ExtensionConfig:
         return cls(
             webhook_secret=data.get("webhook_secret"),
             workspace_token=data.get("workspace_token"),

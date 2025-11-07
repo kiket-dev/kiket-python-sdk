@@ -5,15 +5,16 @@ import asyncio
 import logging
 import os
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any
 
 import httpx
 
 logger = logging.getLogger("kiket_sdk.telemetry")
 
 
-FeedbackHook = Callable[["TelemetryRecord"], Optional[Awaitable[None]]]
+FeedbackHook = Callable[["TelemetryRecord"], Awaitable[None] | None]
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -30,9 +31,9 @@ class TelemetryRecord:
     version: str
     status: str
     duration_ms: float
-    extension_id: Optional[str]
-    extension_version: Optional[str]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    extension_id: str | None
+    extension_version: str | None
+    metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=lambda: time.time())
 
 
@@ -43,10 +44,10 @@ class TelemetryReporter:
         self,
         *,
         enabled: bool = True,
-        telemetry_url: Optional[str] = None,
-        feedback_hook: Optional[FeedbackHook] = None,
-        extension_id: Optional[str],
-        extension_version: Optional[str],
+        telemetry_url: str | None = None,
+        feedback_hook: FeedbackHook | None = None,
+        extension_id: str | None,
+        extension_version: str | None,
     ) -> None:
         self.enabled = enabled and not _is_truthy(os.getenv("KIKET_SDK_TELEMETRY_OPTOUT"))
         self.telemetry_url = telemetry_url or os.getenv("KIKET_SDK_TELEMETRY_URL")

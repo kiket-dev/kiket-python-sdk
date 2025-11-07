@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from textwrap import dedent
 
 import pytest

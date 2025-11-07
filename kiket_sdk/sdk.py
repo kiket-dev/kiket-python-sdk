@@ -4,22 +4,23 @@ from __future__ import annotations
 import inspect
 import os
 import time
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, Mapping, Optional, Tuple
+from typing import Any
 
-from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.responses import JSONResponse
 import uvicorn
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 
 from .auth import verify_signature
 from .client import KiketClient
-from .endpoints import ExtensionEndpoints
-from .secrets import ExtensionSecretManager
 from .config import ExtensionConfig
+from .endpoints import ExtensionEndpoints
 from .exceptions import AuthenticationError, KiketSDKError
 from .manifest import apply_secret_env_overrides, load_manifest
-from .routing import HandlerRegistry, webhook
-from .telemetry import TelemetryReporter, TelemetryRecord
+from .routing import HandlerRegistry
+from .secrets import ExtensionSecretManager
+from .telemetry import TelemetryRecord, TelemetryReporter
 
 Handler = Callable[[Any, "HandlerContext"], Awaitable[Any] | Any]
 
@@ -34,8 +35,8 @@ class HandlerContext:
     client: KiketClient
     endpoints: ExtensionEndpoints
     settings: Mapping[str, Any]
-    extension_id: Optional[str]
-    extension_version: Optional[str]
+    extension_id: str | None
+    extension_version: str | None
     secrets: ExtensionSecretManager
 
 
@@ -47,15 +48,15 @@ class KiketSDK:
         *,
         webhook_secret: str | None = None,
         workspace_token: str | None = None,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         settings: Mapping[str, Any] | None = None,
-        extension_id: Optional[str] = None,
-        extension_version: Optional[str] = None,
-        manifest_path: Optional[str] = None,
+        extension_id: str | None = None,
+        extension_version: str | None = None,
+        manifest_path: str | None = None,
         auto_env_secrets: bool = True,
         telemetry_enabled: bool = True,
-        feedback_hook: Optional[Callable[[TelemetryRecord], Awaitable[None] | None]] = None,
-        telemetry_url: Optional[str] = None,
+        feedback_hook: Callable[[TelemetryRecord], Awaitable[None] | None] | None = None,
+        telemetry_url: str | None = None,
     ) -> None:
         manifest = load_manifest(manifest_path)
         self.manifest = manifest
@@ -63,11 +64,11 @@ class KiketSDK:
         resolved_base_url = base_url or os.getenv("KIKET_BASE_URL") or "https://kiket.dev"
         resolved_workspace_token = workspace_token or os.getenv("KIKET_WORKSPACE_TOKEN")
 
-        manifest_settings: Dict[str, Any] = manifest.settings_defaults() if manifest else {}
+        manifest_settings: dict[str, Any] = manifest.settings_defaults() if manifest else {}
         if manifest and auto_env_secrets:
             manifest_settings = apply_secret_env_overrides(manifest_settings, manifest.secret_keys())
 
-        merged_settings: Dict[str, Any] = dict(manifest_settings)
+        merged_settings: dict[str, Any] = dict(manifest_settings)
         if settings:
             merged_settings.update(settings)
 
@@ -140,7 +141,7 @@ class KiketSDK:
     def _build_app(self) -> FastAPI:
         app = FastAPI(title="Kiket Extension")
 
-        async def _dispatch(event: str, request: Request, path_version: Optional[str] = None) -> Response:
+        async def _dispatch(event: str, request: Request, path_version: str | None = None) -> Response:
             body = await request.body()
             try:
                 verify_signature(self.config.webhook_secret, body, request.headers)
@@ -250,7 +251,7 @@ def create_app(**kwargs: Any) -> FastAPI:
     return sdk.app
 
 
-def _coerce_optional(value: Optional[str]) -> Optional[str]:
+def _coerce_optional(value: str | None) -> str | None:
     if value is None:
         return None
     stripped = value.strip()

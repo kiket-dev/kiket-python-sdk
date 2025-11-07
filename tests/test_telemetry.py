@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import List
 
 from kiket_sdk import KiketSDK, TelemetryRecord
 
@@ -13,7 +12,7 @@ def sign_payload(payload: dict[str, object], secret: str, *, version: str = "v1"
 
     body = json.dumps(payload)
     signature = hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
-    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    timestamp = datetime.datetime.now(datetime.UTC).isoformat()
     return {
         "body": body,
         "headers": {
@@ -30,7 +29,7 @@ async def _noop(record: TelemetryRecord) -> None:  # pragma: no cover - helper f
 
 
 def test_feedback_hook_receives_success_record():
-    events: List[TelemetryRecord] = []
+    events: list[TelemetryRecord] = []
 
     async def hook(record: TelemetryRecord) -> None:
         events.append(record)
@@ -59,7 +58,7 @@ def test_feedback_hook_receives_success_record():
 
 
 def test_feedback_hook_receives_error_record():
-    events: List[TelemetryRecord] = []
+    events: list[TelemetryRecord] = []
 
     def hook(record: TelemetryRecord) -> None:
         events.append(record)

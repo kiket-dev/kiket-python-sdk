@@ -20,7 +20,7 @@ def isoformat(dt_obj: dt.datetime) -> str:
 
 @pytest.mark.asyncio
 async def test_list_secrets_parses_timestamps():
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
 
     async def handler(request: httpx.Request):
         assert request.url.path == "/api/v1/extensions/ext.test/secrets"
