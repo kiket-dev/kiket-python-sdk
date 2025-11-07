@@ -27,7 +27,7 @@ def replay_payload(sdk: KiketSDK, event: str, payload_file: str | Path) -> Any:
     client = TestClient(sdk.app)
     response = client.post(
         f"/webhooks/{event}",
-        data=body,
+        content=body,
         headers={"Content-Type": "application/json"},
     )
     response.raise_for_status()

@@ -21,8 +21,8 @@ def webhook(event: str, *, version: str) -> Callable[[Handler], Handler]:
     """
 
     def decorator(func: Handler) -> Handler:
-        func.__kiket_event__ = event
-        func.__kiket_version__ = version
+        func.__kiket_event__ = event  # type: ignore[attr-defined]
+        func.__kiket_version__ = version  # type: ignore[attr-defined]
         return func
 
     return decorator

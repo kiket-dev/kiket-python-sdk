@@ -89,6 +89,9 @@ class TelemetryReporter:
                     logger.debug("Telemetry dispatch failed: %s", result)
 
     async def _post(self, record: TelemetryRecord) -> None:
+        if not self.telemetry_url:  # pragma: no cover - defensive check
+            return
+
         payload = {
             "event": record.event,
             "version": record.version,
