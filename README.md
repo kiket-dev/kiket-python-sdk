@@ -10,6 +10,7 @@
 - 🧪 **Testing utilities** – pytest fixtures, signed-payload factories, and replay helpers to keep extensions reliable.
 - 🔁 **Version-aware routing** – register multiple handlers per event (`@sdk.webhook(..., version="v2")`) and propagate version headers on outbound calls.
 - 📦 **Manifest-aware defaults** – automatically loads `extension.yaml`/`manifest.yaml`, applies configuration defaults, and hydrates secrets from `KIKET_SECRET_*` environment variables.
+- 📇 **Custom data client** – call `/api/v1/ext/custom_data/...` with `context.endpoints.custom_data(project_id)` using the configured extension API key.
 - 🧱 **Typed & documented** – designed for Python 3.11+ with Ruff linting, MyPy type hints, and rich docstrings.
 - 📊 **Telemetry & feedback hooks** – capture handler duration/success metrics automatically and forward them to your own feedback callback or a hosted endpoint.
 
@@ -26,6 +27,7 @@ from kiket_sdk import KiketSDK
 sdk = KiketSDK(
     webhook_secret="sh_123",
     workspace_token="wk_test",
+    extension_api_key=os.getenv("KIKET_EXTENSION_API_KEY"),
     extension_id="com.example.marketing",
     extension_version="1.0.0",
 )
@@ -53,6 +55,30 @@ async def handle_issue_v2(payload, context):
 if __name__ == "__main__":
     sdk.run(host="0.0.0.0", port=8080)
 ```
+
+### Custom Data Client
+
+When your manifest declares `custom_data.permissions`, set the extension API key (`extension_api_key` argument or `KIKET_EXTENSION_API_KEY` env var) so outbound requests automatically carry `X-Kiket-API-Key`. Use the `custom_data(project_id)` helper to list or mutate module records:
+
+```python
+@sdk.webhook("issue.created", version="v1")
+async def handle_issue(payload, context):
+    project_id = payload["project_id"]
+    contacts = await context.endpoints.custom_data(project_id).list(
+        "com.example.crm.contacts",
+        "automation_records",
+        limit=25,
+        filters={"status": "active"},
+    )
+
+    await context.endpoints.custom_data(project_id).create(
+        "com.example.crm.contacts",
+        "automation_records",
+        {"email": "lead@example.com", "metadata": {"source": "webhook"}},
+    )
+```
+
+Under the hood the helper speaks to `/api/v1/ext/custom_data/:module/:table`, adds the required `project_id`, and returns the parsed JSON payloads.
 
 ### Telemetry & Feedback Hooks
 Every handler invocation emits an opt-in telemetry record containing the event name, version, duration, and status (`ok` / `error`). Enable or customise reporting when instantiating the SDK:

@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from kiket_sdk.client import KiketClient
+from kiket_sdk.custom_data import ExtensionCustomDataClient
 from kiket_sdk.endpoints import ExtensionEndpoints
 
 
@@ -57,3 +58,10 @@ async def test_version_header_added_when_event_version_present():
     header_key = next((k for k in calls["headers"] if k.lower() == "x-kiket-event-version"), None)
     assert header_key is not None
     assert calls["headers"][header_key] == "v2025"
+
+
+def test_custom_data_helper_returns_client():
+    client = object()
+    endpoints = ExtensionEndpoints(client)  # type: ignore[arg-type]
+    helper = endpoints.custom_data(project_id=123)
+    assert isinstance(helper, ExtensionCustomDataClient)

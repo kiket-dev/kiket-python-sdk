@@ -2,6 +2,7 @@
 
 from .client import KiketClient
 from .config import ExtensionConfig
+from .custom_data import ExtensionCustomDataClient
 from .endpoints import ExtensionEndpoints
 from .routing import webhook
 from .sdk import HandlerContext, KiketSDK, create_app
@@ -16,6 +17,7 @@ __all__ = [
     "KiketClient",
     "ExtensionConfig",
     "ExtensionEndpoints",
+    "ExtensionCustomDataClient",
     "ExtensionSecretManager",
     "SecretMetadata",
     "SecretValue",

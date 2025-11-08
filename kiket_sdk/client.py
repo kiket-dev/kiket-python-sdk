@@ -16,11 +16,13 @@ class KiketClient:
         self,
         base_url: str,
         workspace_token: str | None,
+        extension_api_key: str | None = None,
         *,
         timeout: float = 15.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.workspace_token = workspace_token
+        self.extension_api_key = extension_api_key
         self._client = httpx.AsyncClient(base_url=self.base_url, timeout=timeout)
 
     async def __aenter__(self) -> KiketClient:
@@ -77,4 +79,6 @@ class KiketClient:
         merged = {"Accept": "application/json", **headers}
         if self.workspace_token:
             merged.setdefault("Authorization", f"Bearer {self.workspace_token}")
+        if self.extension_api_key:
+            merged.setdefault("X-Kiket-API-Key", self.extension_api_key)
         return merged

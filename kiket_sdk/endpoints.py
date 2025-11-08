@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from .client import KiketClient
+from .custom_data import ExtensionCustomDataClient
 from .secrets import ExtensionSecretManager
 
 
@@ -44,6 +45,10 @@ class ExtensionEndpoints:
             json=payload,
             headers=self._version_headers(),
         )
+
+    def custom_data(self, project_id: int | str) -> ExtensionCustomDataClient:
+        """Return a helper for interacting with the custom data API."""
+        return ExtensionCustomDataClient(self._client, project_id=project_id)
 
     def _version_headers(self) -> dict[str, str]:
         if not self._event_version:

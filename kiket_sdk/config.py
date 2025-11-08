@@ -51,6 +51,7 @@ class ExtensionConfig:
 
     webhook_secret: str | None = None
     workspace_token: str | None = None
+    extension_api_key: str | None = None
     base_url: str = "https://kiket.dev"
     settings: ExtensionSettings = field(default_factory=ExtensionSettings)
     extension_id: str | None = None
@@ -61,6 +62,7 @@ class ExtensionConfig:
         return cls(
             webhook_secret=data.get("webhook_secret"),
             workspace_token=data.get("workspace_token"),
+            extension_api_key=data.get("extension_api_key"),
             base_url=data.get("base_url", "https://kiket.dev"),
             settings=ExtensionSettings(raw=data.get("settings", {})),
             extension_id=data.get("extension_id"),
