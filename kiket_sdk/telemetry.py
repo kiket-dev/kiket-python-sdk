@@ -7,10 +7,10 @@ import os
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 import httpx
-from datetime import datetime, timezone
 
 logger = logging.getLogger("kiket_sdk.telemetry")
 
@@ -109,7 +109,7 @@ class TelemetryReporter:
             "version": record.version,
             "status": record.status,
             "duration_ms": record.duration_ms,
-            "timestamp": datetime.fromtimestamp(record.timestamp, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.timestamp, tz=datetime.UTC).isoformat(),
             "extension_id": record.extension_id,
             "extension_version": record.extension_version,
             "error_message": error_message,
