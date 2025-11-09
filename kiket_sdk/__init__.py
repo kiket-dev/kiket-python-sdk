@@ -4,9 +4,16 @@ from .client import KiketClient
 from .config import ExtensionConfig
 from .custom_data import ExtensionCustomDataClient
 from .endpoints import ExtensionEndpoints
+from .notifications import (
+    ChannelValidationRequest,
+    ChannelValidationResponse,
+    NotificationRequest,
+    NotificationResponse,
+)
 from .routing import webhook
 from .sdk import HandlerContext, KiketSDK, create_app
 from .secrets import ExtensionSecretManager, SecretMetadata, SecretValue
+from .sla import ExtensionSlaEventsClient
 from .telemetry import TelemetryRecord
 
 __all__ = [
@@ -18,8 +25,13 @@ __all__ = [
     "ExtensionConfig",
     "ExtensionEndpoints",
     "ExtensionCustomDataClient",
+    "ExtensionSlaEventsClient",
     "ExtensionSecretManager",
     "SecretMetadata",
     "SecretValue",
     "TelemetryRecord",
+    "NotificationRequest",
+    "NotificationResponse",
+    "ChannelValidationRequest",
+    "ChannelValidationResponse",
 ]

@@ -6,6 +6,7 @@ from typing import Any
 from .client import KiketClient
 from .custom_data import ExtensionCustomDataClient
 from .secrets import ExtensionSecretManager
+from .sla import ExtensionSlaEventsClient
 
 
 class ExtensionEndpoints:
@@ -49,6 +50,10 @@ class ExtensionEndpoints:
     def custom_data(self, project_id: int | str) -> ExtensionCustomDataClient:
         """Return a helper for interacting with the custom data API."""
         return ExtensionCustomDataClient(self._client, project_id=project_id)
+
+    def sla_events(self, project_id: int | str) -> ExtensionSlaEventsClient:
+        """Return a helper for querying SLA alerts for a project."""
+        return ExtensionSlaEventsClient(self._client, project_id)
 
     def _version_headers(self) -> dict[str, str]:
         if not self._event_version:

@@ -80,6 +80,32 @@ async def handle_issue(payload, context):
 
 Under the hood the helper speaks to `/api/v1/ext/custom_data/:module/:table`, adds the required `project_id`, and returns the parsed JSON payloads.
 
+### SLA Alert Stream
+
+Extensions can also react to SLA warnings/breaches without polling the UI. Use the SLA helper to inspect the latest alerts for the installation:
+
+```python
+@sdk.webhook("workflow.sla_status", version="v1")
+async def handle_sla(payload, context):
+    project_id = payload["issue"]["project_id"]
+
+    recent = await context.endpoints.sla_events(project_id).list(
+        state="imminent",
+        limit=5,
+    )
+    if not recent["data"]:
+        return {"ok": True}
+
+    first = recent["data"][0]
+    await context.endpoints.notify(
+        "SLA warning",
+        f"Issue #{first['issue_id']} is {first['state']} for {first['definition']['status']}",
+        level="warning",
+    )
+
+    return {"acknowledged": True}
+```
+
 ### Telemetry & Feedback Hooks
 Every handler invocation emits an opt-in telemetry record containing the event name, version, duration, and status (`ok` / `error`). Enable or customise reporting when instantiating the SDK:
 

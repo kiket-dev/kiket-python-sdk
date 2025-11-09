@@ -8,6 +8,7 @@ import pytest
 from kiket_sdk.client import KiketClient
 from kiket_sdk.custom_data import ExtensionCustomDataClient
 from kiket_sdk.endpoints import ExtensionEndpoints
+from kiket_sdk.sla import ExtensionSlaEventsClient
 
 
 class MockTransport(httpx.MockTransport):
@@ -65,3 +66,10 @@ def test_custom_data_helper_returns_client():
     endpoints = ExtensionEndpoints(client)  # type: ignore[arg-type]
     helper = endpoints.custom_data(project_id=123)
     assert isinstance(helper, ExtensionCustomDataClient)
+
+
+def test_sla_helper_returns_client():
+    client = object()
+    endpoints = ExtensionEndpoints(client)  # type: ignore[arg-type]
+    helper = endpoints.sla_events(project_id="proj-1")
+    assert isinstance(helper, ExtensionSlaEventsClient)
