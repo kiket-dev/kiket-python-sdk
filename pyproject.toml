@@ -19,8 +19,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://docs.kiket.dev/extensions/python-sdk/quickstart"
 Documentation = "https://docs.kiket.dev/extensions/python-sdk/quickstart"
-Source = "https://github.com/kiket-dev/kiket"
-Issues = "https://github.com/kiket-dev/kiket/issues"
+Source = "https://github.com/kiket-dev/kiket-python-sdk"
+Issues = "https://github.com/kiket-dev/kiket-python-sdk/issues"
 
 [project.optional-dependencies]
 dev = [
