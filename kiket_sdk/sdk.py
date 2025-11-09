@@ -83,6 +83,8 @@ class KiketSDK:
             or os.getenv("KIKET_WEBHOOK_SECRET")
         )
 
+        resolved_telemetry_url = telemetry_url or os.getenv("KIKET_SDK_TELEMETRY_URL") or f"{resolved_base_url}/api/v1/ext"
+
         self.config = ExtensionConfig.from_mapping({
             "webhook_secret": resolved_webhook_secret,
             "workspace_token": resolved_workspace_token,
@@ -95,10 +97,11 @@ class KiketSDK:
         self.registry = HandlerRegistry()
         self.telemetry = TelemetryReporter(
             enabled=telemetry_enabled,
-            telemetry_url=telemetry_url,
+            telemetry_url=resolved_telemetry_url,
             feedback_hook=feedback_hook,
             extension_id=resolved_extension_id,
             extension_version=resolved_extension_version,
+            api_key=resolved_extension_api_key,
         )
         self.app = self._build_app()
 
@@ -201,7 +204,8 @@ class KiketSDK:
                         resolved_version,
                         "error",
                         duration_ms,
-                        message=str(exc),
+                        error_message=str(exc),
+                        error_class=exc.__class__.__name__,
                     )
                     raise
                 duration_ms = (time.perf_counter_ns() - start_ns) / 1_000_000

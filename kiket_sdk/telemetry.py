@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+from datetime import datetime, timezone
 
 logger = logging.getLogger("kiket_sdk.telemetry")
 
@@ -48,12 +49,19 @@ class TelemetryReporter:
         feedback_hook: FeedbackHook | None = None,
         extension_id: str | None,
         extension_version: str | None,
+        api_key: str | None = None,
     ) -> None:
         self.enabled = enabled and not _is_truthy(os.getenv("KIKET_SDK_TELEMETRY_OPTOUT"))
-        self.telemetry_url = telemetry_url or os.getenv("KIKET_SDK_TELEMETRY_URL")
+        resolved_url = telemetry_url or os.getenv("KIKET_SDK_TELEMETRY_URL")
+        if resolved_url:
+            base = resolved_url.rstrip("/")
+            self.telemetry_endpoint = base if base.endswith("/telemetry") else f"{base}/telemetry"
+        else:
+            self.telemetry_endpoint = None
         self.feedback_hook = feedback_hook
         self.extension_id = extension_id
         self.extension_version = extension_version
+        self.extension_api_key = api_key
 
     async def record(self, event: str, version: str, status: str, duration_ms: float, **metadata: Any) -> None:
         if not self.enabled:
@@ -79,7 +87,7 @@ class TelemetryReporter:
             except Exception as exc:  # pragma: no cover - feedback errors are soft-fail
                 logger.debug("Feedback hook failed: %s", exc)
 
-        if self.telemetry_url:
+        if self.telemetry_endpoint and self.extension_api_key:
             tasks.append(self._post(record))
 
         if tasks:
@@ -89,22 +97,28 @@ class TelemetryReporter:
                     logger.debug("Telemetry dispatch failed: %s", result)
 
     async def _post(self, record: TelemetryRecord) -> None:
-        if not self.telemetry_url:  # pragma: no cover - defensive check
+        if not self.telemetry_endpoint or not self.extension_api_key:  # pragma: no cover
             return
+
+        metadata = dict(record.metadata or {})
+        error_message = metadata.pop("error_message", None) or metadata.pop("message", None)
+        error_class = metadata.pop("error_class", None)
 
         payload = {
             "event": record.event,
             "version": record.version,
             "status": record.status,
             "duration_ms": record.duration_ms,
-            "timestamp": record.timestamp,
+            "timestamp": datetime.fromtimestamp(record.timestamp, tz=timezone.utc).isoformat(),
             "extension_id": record.extension_id,
             "extension_version": record.extension_version,
-            "metadata": record.metadata,
+            "error_message": error_message,
+            "error_class": error_class,
+            "metadata": metadata,
         }
 
         try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                await client.post(self.telemetry_url, json=payload)
+            async with httpx.AsyncClient(timeout=2.0, headers={"X-Kiket-API-Key": self.extension_api_key}) as client:
+                await client.post(self.telemetry_endpoint, json=payload)
         except Exception as exc:  # pragma: no cover - external network issues
             logger.debug("Unable to POST telemetry: %s", exc)
