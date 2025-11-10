@@ -194,3 +194,47 @@ def test_missing_version_returns_bad_request():
 
     assert response.status_code == 400
     assert "Event version required" in response.json()["detail"]
+
+
+def test_runtime_token_passes_through_context_and_headers():
+    sdk = KiketSDK(
+        webhook_secret="secret",
+        workspace_token="wk_test",
+        extension_api_key="ext_api",
+        extension_id="ext.runtime",
+    )
+
+    observed: dict[str, str | None] = {}
+
+    @sdk.webhook("issue.created", version="v1")
+    async def handle(payload, context):  # noqa: ANN001
+        observed["runtime_token"] = context.auth.runtime_token
+        headers = context.client._build_headers({})  # type: ignore[attr-defined] # noqa: SLF001
+        observed["header_token"] = headers.get("X-Runtime-Token")
+        observed["token_type"] = context.auth.token_type
+        observed["scope_count"] = len(context.auth.scopes)
+        return {"ok": True}
+
+    client = sdk.create_test_client()
+    payload = {
+        "issue": {"id": 1},
+        "authentication": {
+            "runtime_token": "rt_token",
+            "token_type": "runtime",
+            "expires_at": "2025-11-10T00:00:00Z",
+            "scopes": ["ext.api.read", "ext.secrets.read"],
+        },
+    }
+    signed = sign_payload(payload, "secret", {"X-Kiket-Event-Version": "v1"})
+
+    response = client.post(
+        "/webhooks/issue.created",
+        data=signed["body"],
+        headers=signed["headers"],
+    )
+
+    assert response.status_code == 200
+    assert observed["runtime_token"] == "rt_token"
+    assert observed["header_token"] == "rt_token"
+    assert observed["token_type"] == "runtime"
+    assert observed["scope_count"] == 2

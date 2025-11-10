@@ -11,7 +11,7 @@ from .notifications import (
     NotificationResponse,
 )
 from .routing import webhook
-from .sdk import HandlerContext, KiketSDK, create_app
+from .sdk import AuthenticationContext, HandlerContext, KiketSDK, create_app
 from .secrets import ExtensionSecretManager, SecretMetadata, SecretValue
 from .sla import ExtensionSlaEventsClient
 from .telemetry import TelemetryRecord
@@ -20,6 +20,7 @@ __all__ = [
     "KiketSDK",
     "create_app",
     "HandlerContext",
+    "AuthenticationContext",
     "webhook",
     "KiketClient",
     "ExtensionConfig",

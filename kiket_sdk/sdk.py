@@ -26,6 +26,16 @@ Handler = Callable[[Any, "HandlerContext"], Awaitable[Any] | Any]
 
 
 @dataclass(slots=True)
+class AuthenticationContext:
+    """Authentication metadata sent with each webhook payload."""
+
+    runtime_token: str | None
+    token_type: str | None
+    expires_at: str | None
+    scopes: list[str]
+
+
+@dataclass(slots=True)
 class HandlerContext:
     """Context passed into webhook handlers."""
 
@@ -38,6 +48,7 @@ class HandlerContext:
     extension_id: str | None
     extension_version: str | None
     secrets: ExtensionSecretManager
+    auth: AuthenticationContext
 
 
 class KiketSDK:
@@ -173,10 +184,12 @@ class KiketSDK:
 
             handler, resolved_version = resolved
             payload = await request.json()
+            auth_context = self._coerce_authentication(payload)
             async with KiketClient(
                 base_url=self.config.base_url,
                 workspace_token=self.config.workspace_token,
                 extension_api_key=self.config.extension_api_key,
+                runtime_token=auth_context.runtime_token,
             ) as client:
                 endpoints = ExtensionEndpoints(
                     client,
@@ -193,6 +206,7 @@ class KiketSDK:
                     extension_id=self.config.extension_id,
                     extension_version=self.config.extension_version,
                     secrets=endpoints.secrets,
+                    auth=auth_context,
                 )
                 start_ns = time.perf_counter_ns()
                 try:
@@ -240,6 +254,24 @@ class KiketSDK:
             return JSONResponse({"error": str(exc)}, status_code=400)
 
         return app
+
+    def _coerce_authentication(self, payload: Any) -> AuthenticationContext:
+        if isinstance(payload, Mapping):
+            raw_auth = payload.get("authentication") or {}
+        else:
+            raw_auth = {}
+
+        runtime_token = raw_auth.get("runtime_token")
+        token_type = raw_auth.get("token_type")
+        expires_at = raw_auth.get("expires_at")
+        scopes = raw_auth.get("scopes") or []
+
+        return AuthenticationContext(
+            runtime_token=str(runtime_token) if runtime_token else None,
+            token_type=str(token_type) if token_type else None,
+            expires_at=str(expires_at) if expires_at else None,
+            scopes=[str(scope) for scope in scopes if scope],
+        )
 
 
 async def _invoke(handler: Handler, payload: Any, context: HandlerContext) -> Any:
