@@ -1,12 +1,21 @@
 """High-level client for Kiket extension endpoints."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict
 
 from .client import KiketClient
 from .custom_data import ExtensionCustomDataClient
 from .secrets import ExtensionSecretManager
 from .sla import ExtensionSlaEventsClient
+
+
+class RateLimitInfo(TypedDict):
+    """Shape of the `/api/v1/ext/rate_limit` response."""
+
+    limit: int
+    remaining: int
+    window_seconds: int
+    reset_in: int
 
 
 class ExtensionEndpoints:
@@ -54,6 +63,18 @@ class ExtensionEndpoints:
     def sla_events(self, project_id: int | str) -> ExtensionSlaEventsClient:
         """Return a helper for querying SLA alerts for a project."""
         return ExtensionSlaEventsClient(self._client, project_id)
+
+    async def rate_limit(self) -> RateLimitInfo:
+        """Fetch the current extension-specific rate limit window."""
+        response = await self._client.get("/api/v1/ext/rate_limit")
+        payload = response.json()
+        data = payload.get("rate_limit") or {}
+        return {
+            "limit": int(data.get("limit", 0) or 0),
+            "remaining": int(data.get("remaining", 0) or 0),
+            "window_seconds": int(data.get("window_seconds", 0) or 0),
+            "reset_in": int(data.get("reset_in", 0) or 0),
+        }
 
     def _version_headers(self) -> dict[str, str]:
         if not self._event_version:

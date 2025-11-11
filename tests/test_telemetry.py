@@ -81,4 +81,4 @@ def test_feedback_hook_receives_error_record():
     assert len(events) == 1
     record = events[0]
     assert record.status == "error"
-    assert record.metadata["message"] == "boom"
+    assert record.metadata["error_message"] == "boom"

@@ -11,6 +11,7 @@
 - 🔁 **Version-aware routing** – register multiple handlers per event (`@sdk.webhook(..., version="v2")`) and propagate version headers on outbound calls.
 - 📦 **Manifest-aware defaults** – automatically loads `extension.yaml`/`manifest.yaml`, applies configuration defaults, and hydrates secrets from `KIKET_SECRET_*` environment variables.
 - 📇 **Custom data client** – call `/api/v1/ext/custom_data/...` with `context.endpoints.custom_data(project_id)` using the configured extension API key.
+- 📉 **Rate-limit helper** – introspect `/api/v1/ext/rate_limit` before enqueueing large jobs or retries.
 - 🧱 **Typed & documented** – designed for Python 3.11+ with Ruff linting, MyPy type hints, and rich docstrings.
 - 📊 **Telemetry & feedback hooks** – capture handler duration/success metrics automatically and forward them to your own feedback callback or a hosted endpoint.
 
@@ -148,3 +149,22 @@ When you are ready to cut a release:
 - **Sample extension:** ship a production-grade marketing automation example demonstrating multi-event handlers, manifest-driven configuration, and deployment templates.
 - **Documentation:** publish quickstart, reference, cookbook, and tutorial content alongside SDK release.
 - **Early access:** package for PyPI, collect telemetry/feedback before general availability (telemetry hooks + publishing checklist now available).
+### Rate-Limit Helper
+
+Need to throttle expensive work? Ask the runtime for the current window and remaining calls:
+
+```python
+@sdk.webhook("automation.dispatch", version="v1")
+async def handle_dispatch(payload, context):
+    limits = await context.endpoints.rate_limit()
+    if limits["remaining"] < 5:
+        await context.endpoints.notify(
+            "Rate limit warning",
+            f"Only {limits['remaining']} calls remain in this window",
+            level="warning",
+        )
+        return {"deferred": True, "reset_in": limits["reset_in"]}
+
+    # Continue with the expensive call
+    return {"ok": True}
+```

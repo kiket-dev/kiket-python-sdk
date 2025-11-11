@@ -73,3 +73,31 @@ def test_sla_helper_returns_client():
     endpoints = ExtensionEndpoints(client)  # type: ignore[arg-type]
     helper = endpoints.sla_events(project_id="proj-1")
     assert isinstance(helper, ExtensionSlaEventsClient)
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_returns_payload():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status_code=200,
+            json={
+                "rate_limit": {
+                    "limit": 600,
+                    "remaining": 42,
+                    "window_seconds": 60,
+                    "reset_in": 12,
+                }
+            },
+        )
+
+    client = KiketClient(base_url="https://example.invalid", workspace_token="wk_test")
+    client._client = httpx.AsyncClient(transport=MockTransport(handler), base_url=client.base_url)  # type: ignore[attr-defined]
+
+    async with client as http_client:
+        endpoints = ExtensionEndpoints(http_client)
+        info = await endpoints.rate_limit()
+
+    assert info["limit"] == 600
+    assert info["remaining"] == 42
+    assert info["window_seconds"] == 60
+    assert info["reset_in"] == 12
