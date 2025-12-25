@@ -4,6 +4,7 @@ from .client import KiketClient
 from .config import ExtensionConfig
 from .custom_data import ExtensionCustomDataClient
 from .endpoints import ExtensionEndpoints, RateLimitInfo
+from .intake_forms import IntakeFormsClient
 from .notifications import (
     ChannelValidationRequest,
     ChannelValidationResponse,
@@ -28,6 +29,7 @@ __all__ = [
     "RateLimitInfo",
     "ExtensionCustomDataClient",
     "ExtensionSlaEventsClient",
+    "IntakeFormsClient",
     "ExtensionSecretManager",
     "SecretMetadata",
     "SecretValue",

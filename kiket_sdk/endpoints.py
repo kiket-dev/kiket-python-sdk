@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 
 from .client import KiketClient
 from .custom_data import ExtensionCustomDataClient
+from .intake_forms import IntakeFormsClient
 from .secrets import ExtensionSecretManager
 from .sla import ExtensionSlaEventsClient
 
@@ -63,6 +64,10 @@ class ExtensionEndpoints:
     def sla_events(self, project_id: int | str) -> ExtensionSlaEventsClient:
         """Return a helper for querying SLA alerts for a project."""
         return ExtensionSlaEventsClient(self._client, project_id)
+
+    def intake_forms(self, project_id: int | str) -> IntakeFormsClient:
+        """Return a helper for managing intake forms and submissions."""
+        return IntakeFormsClient(self._client, project_id)
 
     async def rate_limit(self) -> RateLimitInfo:
         """Fetch the current extension-specific rate limit window."""
