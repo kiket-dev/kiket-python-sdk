@@ -148,17 +148,28 @@ class AuditClient:
 
         return self._parse_anchor(response.json())
 
-    async def get_proof(self, record_id: int) -> BlockchainProof:
+    async def get_proof(
+        self,
+        record_id: int,
+        *,
+        record_type: str = "AuditLog",
+    ) -> BlockchainProof:
         """Get the blockchain proof for a specific audit record.
 
         Args:
             record_id: The ID of the audit record
+            record_type: Type of record ("AuditLog" or "AIAuditLog")
 
         Returns:
             BlockchainProof instance
         """
+        params = {"record_type": record_type} if record_type != "AuditLog" else {}
+
         try:
-            response = await self._client.get(f"/api/v1/audit/records/{record_id}/proof")
+            response = await self._client.get(
+                f"/api/v1/audit/records/{record_id}/proof",
+                params=params,
+            )
         except OutboundRequestError as exc:
             raise AuditVerificationError(f"Failed to get proof for record {record_id}") from exc
 
