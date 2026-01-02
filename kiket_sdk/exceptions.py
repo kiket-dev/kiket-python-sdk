@@ -20,3 +20,7 @@ class SecretStoreError(KiketSDKError):
 
 class OutboundRequestError(KiketSDKError):
     """Raised when outbound calls to Kiket fail."""
+
+
+class AuditVerificationError(KiketSDKError):
+    """Raised when blockchain audit verification operations fail."""
