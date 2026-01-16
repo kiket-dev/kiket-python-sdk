@@ -149,6 +149,31 @@ When you are ready to cut a release:
 - **Sample extension:** ship a production-grade marketing automation example demonstrating multi-event handlers, manifest-driven configuration, and deployment templates.
 - **Documentation:** publish quickstart, reference, cookbook, and tutorial content alongside SDK release.
 - **Early access:** package for PyPI, collect telemetry/feedback before general availability (telemetry hooks + publishing checklist now available).
+
+### Secret Helper
+
+The `secret()` method provides a simple way to retrieve secrets with automatic fallback:
+
+```python
+# Checks payload secrets first (per-org config), falls back to ENV
+slack_token = context.secret("SLACK_BOT_TOKEN")
+
+# Example usage
+@sdk.webhook("issue.created", version="v1")
+async def handle_issue(payload, context):
+    api_key = context.secret("API_KEY")
+    if not api_key:
+        raise ValueError("API_KEY not configured")
+    # Use api_key...
+    return {"ok": True}
+```
+
+The lookup order is:
+1. **Payload secrets** (per-org configuration from `payload["secrets"]`)
+2. **Environment variables** (extension defaults via `os.environ`)
+
+This allows organizations to override extension defaults with their own credentials.
+
 ### Rate-Limit Helper
 
 Need to throttle expensive work? Ask the runtime for the current window and remaining calls:
@@ -166,5 +191,51 @@ async def handle_dispatch(payload, context):
         return {"deferred": True, "reset_in": limits["reset_in"]}
 
     # Continue with the expensive call
+    return {"ok": True}
+```
+
+### Runtime Token Authentication
+
+The Kiket platform sends a per-invocation `runtime_token` in each webhook payload. This token is automatically extracted and used for all API calls made through `context.client` and `context.endpoints`. The runtime token provides organization-scoped access and is preferred over static tokens.
+
+```python
+@sdk.webhook("issue.created", version="v1")
+async def handle_issue(payload, context):
+    # Access authentication context
+    print(f"Token expires at: {context.auth.expires_at}")
+    print(f"Scopes: {', '.join(context.auth.scopes)}")
+
+    # API calls automatically use the runtime token
+    await context.endpoints.log_event("processed", ok=True)
+
+    return {"ok": True}
+```
+
+The `context.auth` object contains:
+- `runtime_token`: The per-invocation API token
+- `token_type`: Typically "runtime"
+- `expires_at`: Token expiration timestamp
+- `scopes`: List of granted API scopes
+
+### Scope Checking
+
+Extensions can declare required scopes when registering handlers. The SDK will automatically check scopes before invoking the handler and return a 403 error if insufficient.
+
+```python
+# Declare required scopes at registration time
+@sdk.webhook("issue.created", version="v1", required_scopes=["issues.read", "issues.write"])
+async def handle_issue(payload, context):
+    # Handler only executes if scopes are present
+    await context.endpoints.log_event("issue.processed", id=payload["issue"]["id"])
+    return {"ok": True}
+
+# Check scopes dynamically within the handler
+@sdk.webhook("workflow.triggered", version="v1")
+async def handle_workflow(payload, context):
+    # Raises ScopeError if scopes are missing
+    context.require_scopes("workflows.execute", "custom_data.write")
+
+    # Continue with scope-protected operations
+    await context.endpoints.custom_data(project_id).create(...)
     return {"ok": True}
 ```
