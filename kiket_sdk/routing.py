@@ -7,13 +7,18 @@ from collections.abc import Awaitable, Callable
 Handler = Callable[..., Awaitable[object] | object]
 
 
-def webhook(event: str, *, version: str) -> Callable[[Handler], Handler]:
+def webhook(
+    event: str,
+    *,
+    version: str,
+    required_scopes: list[str] | None = None,
+) -> Callable[[Handler], Handler]:
     """Decorator for registering webhook handlers.
 
     Usage
     -----
     >>> from kiket_sdk import webhook
-    >>> @webhook("issue.created", version="v2")
+    >>> @webhook("issue.created", version="v2", required_scopes=["issues.read"])
     ... async def handle_issue(payload, context):
     ...     ...
 
@@ -23,22 +28,45 @@ def webhook(event: str, *, version: str) -> Callable[[Handler], Handler]:
     def decorator(func: Handler) -> Handler:
         func.__kiket_event__ = event  # type: ignore[attr-defined]
         func.__kiket_version__ = version  # type: ignore[attr-defined]
+        func.__kiket_required_scopes__ = required_scopes or []  # type: ignore[attr-defined]
         return func
 
     return decorator
+
+
+class HandlerMetadata:
+    """Metadata for a registered handler."""
+
+    __slots__ = ("handler", "version", "required_scopes")
+
+    def __init__(self, handler: Handler, version: str, required_scopes: list[str]) -> None:
+        self.handler = handler
+        self.version = version
+        self.required_scopes = required_scopes
 
 
 class HandlerRegistry:
     """In-memory registry mapping event type to handler callables per version."""
 
     def __init__(self) -> None:
-        self._handlers: dict[str, dict[str, Handler]] = defaultdict(dict)
+        self._handlers: dict[str, dict[str, HandlerMetadata]] = defaultdict(dict)
 
-    def register(self, event: str, handler: Handler, *, version: str) -> None:
+    def register(
+        self,
+        event: str,
+        handler: Handler,
+        *,
+        version: str,
+        required_scopes: list[str] | None = None,
+    ) -> None:
         validated = _coerce_version(version)
-        self._handlers[event][validated] = handler
+        self._handlers[event][validated] = HandlerMetadata(
+            handler=handler,
+            version=validated,
+            required_scopes=required_scopes or [],
+        )
 
-    def get(self, event: str, version: str | None) -> tuple[Handler, str] | None:
+    def get(self, event: str, version: str | None) -> HandlerMetadata | None:
         if version is None:
             return None
 
@@ -47,15 +75,12 @@ class HandlerRegistry:
         if not event_handlers:
             return None
 
-        handler = event_handlers.get(validated)
-        if handler is None:
-            return None
-        return handler, validated
+        return event_handlers.get(validated)
 
-    def all(self) -> dict[str, dict[str, Handler]]:
+    def all(self) -> dict[str, dict[str, HandlerMetadata]]:
         return {event: handlers.copy() for event, handlers in self._handlers.items()}
 
-    def events(self) -> dict[str, dict[str, Handler]]:
+    def events(self) -> dict[str, dict[str, HandlerMetadata]]:
         """Return the registered handlers without exposing the internal dict."""
         return self.all()
 

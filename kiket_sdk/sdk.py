@@ -12,27 +12,19 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
-from .auth import verify_signature
+from .auth import AuthContext, build_auth_context, verify_runtime_token
 from .client import KiketClient
 from .config import ExtensionConfig
 from .endpoints import ExtensionEndpoints
-from .exceptions import AuthenticationError, KiketSDKError
+from .exceptions import AuthenticationError, KiketSDKError, ScopeError
 from .manifest import apply_secret_env_overrides, load_manifest
 from .routing import HandlerRegistry
 from .secrets import ExtensionSecretManager
 from .telemetry import TelemetryRecord, TelemetryReporter
 
 Handler = Callable[[Any, "HandlerContext"], Awaitable[Any] | Any]
-
-
-@dataclass(slots=True)
-class AuthenticationContext:
-    """Authentication metadata sent with each webhook payload."""
-
-    runtime_token: str | None
-    token_type: str | None
-    expires_at: str | None
-    scopes: list[str]
+ScopeChecker = Callable[..., None]
+SecretHelper = Callable[[str], str | None]
 
 
 @dataclass(slots=True)
@@ -48,7 +40,10 @@ class HandlerContext:
     extension_id: str | None
     extension_version: str | None
     secrets: ExtensionSecretManager
-    auth: AuthenticationContext
+    secret: SecretHelper
+    payload_secrets: Mapping[str, str]
+    auth: AuthContext
+    require_scopes: ScopeChecker
 
 
 class KiketSDK:
@@ -57,7 +52,6 @@ class KiketSDK:
     def __init__(
         self,
         *,
-        webhook_secret: str | None = None,
         workspace_token: str | None = None,
         extension_api_key: str | None = None,
         base_url: str | None = None,
@@ -88,16 +82,9 @@ class KiketSDK:
         resolved_extension_id = extension_id or (manifest.extension_id if manifest else None)
         resolved_extension_version = extension_version or (manifest.version if manifest else None)
 
-        resolved_webhook_secret = (
-            webhook_secret
-            or (manifest.delivery_secret if manifest else None)
-            or os.getenv("KIKET_WEBHOOK_SECRET")
-        )
-
         resolved_telemetry_url = telemetry_url or os.getenv("KIKET_SDK_TELEMETRY_URL") or f"{resolved_base_url}/api/v1/ext"
 
         self.config = ExtensionConfig.from_mapping({
-            "webhook_secret": resolved_webhook_secret,
             "workspace_token": resolved_workspace_token,
             "extension_api_key": resolved_extension_api_key,
             "base_url": resolved_base_url,
@@ -119,12 +106,25 @@ class KiketSDK:
     # ------------------------------------------------------------------
     # Registration API
     # ------------------------------------------------------------------
-    def register(self, event: str, handler: Handler, *, version: str) -> None:
-        self.registry.register(event, handler, version=version)
+    def register(
+        self,
+        event: str,
+        handler: Handler,
+        *,
+        version: str,
+        required_scopes: list[str] | None = None,
+    ) -> None:
+        self.registry.register(event, handler, version=version, required_scopes=required_scopes)
 
-    def webhook(self, event: str, *, version: str) -> Callable[[Handler], Handler]:
+    def webhook(
+        self,
+        event: str,
+        *,
+        version: str,
+        required_scopes: list[str] | None = None,
+    ) -> Callable[[Handler], Handler]:
         def decorator(func: Handler) -> Handler:
-            self.register(event, func, version=version)
+            self.register(event, func, version=version, required_scopes=required_scopes)
             return func
 
         return decorator
@@ -159,9 +159,14 @@ class KiketSDK:
         app = FastAPI(title="Kiket Extension")
 
         async def _dispatch(event: str, request: Request, path_version: str | None = None) -> Response:
-            body = await request.body()
+            payload = await request.json()
+
+            # Resolve API base URL from payload or config
+            api_base_url = payload.get("api", {}).get("base_url") or self.config.base_url
+
+            # Verify JWT runtime token
             try:
-                verify_signature(self.config.webhook_secret, body, request.headers)
+                jwt_payload = await verify_runtime_token(payload, api_base_url)
             except AuthenticationError as exc:
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -175,18 +180,38 @@ class KiketSDK:
                     detail="Event version required. Provide X-Kiket-Event-Version header, version query param, or /v/{version} path.",
                 )
 
-            resolved = self.registry.get(event, requested_version)
-            if not resolved:
+            metadata = self.registry.get(event, requested_version)
+            if not metadata:
                 raise HTTPException(
                     status_code=404,
                     detail=f"No handler registered for event '{event}' with version '{requested_version}'",
                 )
 
-            handler, resolved_version = resolved
-            payload = await request.json()
-            auth_context = self._coerce_authentication(payload)
+            handler = metadata.handler
+            resolved_version = metadata.version
+            auth_context = build_auth_context(jwt_payload, payload)
+
+            # Check required scopes before proceeding
+            if metadata.required_scopes:
+                missing = self._check_scopes(metadata.required_scopes, auth_context.scopes)
+                if missing:
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "error": "Insufficient scopes",
+                            "required_scopes": metadata.required_scopes,
+                            "missing_scopes": missing,
+                        },
+                    )
+
+            # Extract payload secrets for quick access (bundled by SecretResolver)
+            payload_secrets = payload.get("secrets") or {}
+
+            # Build secret helper: checks payload secrets first (per-org), falls back to ENV (extension defaults)
+            secret_helper = self._build_secret_helper(payload_secrets)
+
             async with KiketClient(
-                base_url=self.config.base_url,
+                base_url=api_base_url,
                 workspace_token=self.config.workspace_token,
                 extension_api_key=self.config.extension_api_key,
                 runtime_token=auth_context.runtime_token,
@@ -206,7 +231,10 @@ class KiketSDK:
                     extension_id=self.config.extension_id,
                     extension_version=self.config.extension_version,
                     secrets=endpoints.secrets,
+                    secret=secret_helper,
+                    payload_secrets=payload_secrets,
                     auth=auth_context,
+                    require_scopes=self._build_scope_checker(auth_context.scopes),
                 )
                 start_ns = time.perf_counter_ns()
                 try:
@@ -255,23 +283,35 @@ class KiketSDK:
 
         return app
 
-    def _coerce_authentication(self, payload: Any) -> AuthenticationContext:
-        if isinstance(payload, Mapping):
-            raw_auth = payload.get("authentication") or {}
-        else:
-            raw_auth = {}
+    def _check_scopes(self, required_scopes: list[str], available_scopes: list[str]) -> list[str]:
+        """Check if all required scopes are present. Returns missing scopes."""
+        if "*" in available_scopes:
+            return []
+        return [s for s in required_scopes if s not in available_scopes]
 
-        runtime_token = raw_auth.get("runtime_token")
-        token_type = raw_auth.get("token_type")
-        expires_at = raw_auth.get("expires_at")
-        scopes = raw_auth.get("scopes") or []
+    def _build_scope_checker(self, available_scopes: list[str]) -> ScopeChecker:
+        """Build a scope checker function for use in handler context."""
+        def checker(*required_scopes: str) -> None:
+            missing = self._check_scopes(list(required_scopes), available_scopes)
+            if missing:
+                raise ScopeError(list(required_scopes), available_scopes)
+        return checker
 
-        return AuthenticationContext(
-            runtime_token=str(runtime_token) if runtime_token else None,
-            token_type=str(token_type) if token_type else None,
-            expires_at=str(expires_at) if expires_at else None,
-            scopes=[str(scope) for scope in scopes if scope],
-        )
+    def _build_secret_helper(self, payload_secrets: Mapping[str, str]) -> SecretHelper:
+        """Build a secret helper function for use in handler context.
+
+        Checks payload secrets first (per-org configuration bundled by SecretResolver),
+        then falls back to environment variables (extension defaults).
+
+        Example:
+            # In handler:
+            slack_token = context.secret('SLACK_BOT_TOKEN')
+            # Returns payload["secrets"]["SLACK_BOT_TOKEN"] or os.getenv("SLACK_BOT_TOKEN")
+        """
+        def helper(key: str) -> str | None:
+            # Payload secrets (per-org) take priority over ENV (extension defaults)
+            return payload_secrets.get(key) or os.getenv(key)
+        return helper
 
 
 async def _invoke(handler: Handler, payload: Any, context: HandlerContext) -> Any:

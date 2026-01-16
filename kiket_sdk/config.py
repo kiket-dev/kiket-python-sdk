@@ -31,9 +31,6 @@ class ExtensionConfig:
 
     Attributes
     ----------
-    webhook_secret:
-        Shared secret used for verifying inbound webhook signatures. Optional but strongly
-        recommended.
     workspace_token:
         Token used for authenticating outbound calls back into Kiket.
     base_url:
@@ -49,7 +46,6 @@ class ExtensionConfig:
         and dispatching version-aware handlers.
     """
 
-    webhook_secret: str | None = None
     workspace_token: str | None = None
     extension_api_key: str | None = None
     base_url: str = "https://kiket.dev"
@@ -60,7 +56,6 @@ class ExtensionConfig:
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> ExtensionConfig:
         return cls(
-            webhook_secret=data.get("webhook_secret"),
             workspace_token=data.get("workspace_token"),
             extension_api_key=data.get("extension_api_key"),
             base_url=data.get("base_url", "https://kiket.dev"),
