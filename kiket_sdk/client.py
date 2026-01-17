@@ -16,14 +16,12 @@ class KiketClient:
         self,
         base_url: str,
         workspace_token: str | None,
-        extension_api_key: str | None = None,
         runtime_token: str | None = None,
         *,
         timeout: float = 15.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.workspace_token = workspace_token
-        self.extension_api_key = extension_api_key
         self.runtime_token = runtime_token
         self._client = httpx.AsyncClient(base_url=self.base_url, timeout=timeout)
 
@@ -85,7 +83,5 @@ class KiketClient:
         if self.workspace_token:
             merged.setdefault("Authorization", f"Bearer {self.workspace_token}")
         if self.runtime_token:
-            merged.setdefault("X-Runtime-Token", self.runtime_token)
-        elif self.extension_api_key:
-            merged.setdefault("X-Kiket-API-Key", self.extension_api_key)
+            merged.setdefault("X-Kiket-Runtime-Token", self.runtime_token)
         return merged

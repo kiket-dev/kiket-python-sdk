@@ -19,7 +19,7 @@ async def test_list_builds_query_params():
         captured["url"] = str(request.url)
         return httpx.Response(status_code=200, json={"data": []})
 
-    client = KiketClient(base_url="https://example.invalid", workspace_token="wk_test", extension_api_key="ext_test")
+    client = KiketClient(base_url="https://example.invalid", workspace_token="wk_test", runtime_token="rt_test")
     client._client = httpx.AsyncClient(transport=MockTransport(handler), base_url=client.base_url)  # type: ignore[attr-defined]
 
     async with client as http_client:

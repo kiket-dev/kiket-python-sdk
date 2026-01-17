@@ -26,9 +26,7 @@ pytest
 from kiket_sdk import KiketSDK
 
 sdk = KiketSDK(
-    webhook_secret="sh_123",
     workspace_token="wk_test",
-    extension_api_key=os.getenv("KIKET_EXTENSION_API_KEY"),
     extension_id="com.example.marketing",
     extension_version="1.0.0",
 )
@@ -59,7 +57,7 @@ if __name__ == "__main__":
 
 ### Custom Data Client
 
-When your manifest declares `custom_data.permissions`, set the extension API key (`extension_api_key` argument or `KIKET_EXTENSION_API_KEY` env var) so outbound requests automatically carry `X-Kiket-API-Key`. Use the `custom_data(project_id)` helper to list or mutate module records:
+When your manifest declares `custom_data.permissions`, the SDK automatically uses the runtime token provided in the webhook payload for API calls via `context.client`. Use the `custom_data(project_id)` helper to list or mutate module records:
 
 ```python
 @sdk.webhook("issue.created", version="v1")

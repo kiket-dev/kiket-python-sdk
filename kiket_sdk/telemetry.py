@@ -49,7 +49,6 @@ class TelemetryReporter:
         feedback_hook: FeedbackHook | None = None,
         extension_id: str | None,
         extension_version: str | None,
-        api_key: str | None = None,
     ) -> None:
         self.enabled = enabled and not _is_truthy(os.getenv("KIKET_SDK_TELEMETRY_OPTOUT"))
         resolved_url = telemetry_url or os.getenv("KIKET_SDK_TELEMETRY_URL")
@@ -61,7 +60,6 @@ class TelemetryReporter:
         self.feedback_hook = feedback_hook
         self.extension_id = extension_id
         self.extension_version = extension_version
-        self.extension_api_key = api_key
 
     async def record(self, event: str, version: str, status: str, duration_ms: float, **metadata: Any) -> None:
         if not self.enabled:
@@ -87,7 +85,7 @@ class TelemetryReporter:
             except Exception as exc:  # pragma: no cover - feedback errors are soft-fail
                 logger.debug("Feedback hook failed: %s", exc)
 
-        if self.telemetry_endpoint and self.extension_api_key:
+        if self.telemetry_endpoint:
             tasks.append(self._post(record))
 
         if tasks:
@@ -97,7 +95,7 @@ class TelemetryReporter:
                     logger.debug("Telemetry dispatch failed: %s", result)
 
     async def _post(self, record: TelemetryRecord) -> None:
-        if not self.telemetry_endpoint or not self.extension_api_key:  # pragma: no cover
+        if not self.telemetry_endpoint:  # pragma: no cover
             return
 
         metadata = dict(record.metadata or {})
@@ -118,7 +116,7 @@ class TelemetryReporter:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=2.0, headers={"X-Kiket-API-Key": self.extension_api_key}) as client:
+            async with httpx.AsyncClient(timeout=2.0) as client:
                 await client.post(self.telemetry_endpoint, json=payload)
         except Exception as exc:  # pragma: no cover - external network issues
             logger.debug("Unable to POST telemetry: %s", exc)

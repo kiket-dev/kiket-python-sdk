@@ -64,13 +64,12 @@ async def test_store_secret_sends_payload(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_runtime_token_header_takes_precedence():
+async def test_runtime_token_header_is_sent():
     async def handler(request: httpx.Request):
-        assert request.headers["X-Runtime-Token"] == "rt_test"
-        assert "X-Kiket-API-Key" not in request.headers
+        assert request.headers["X-Kiket-Runtime-Token"] == "rt_test"
         return httpx.Response(200, json={"ok": True})
 
-    client = KiketClient("https://example.invalid", "wk_test", "api_test", runtime_token="rt_test")
+    client = KiketClient("https://example.invalid", "wk_test", runtime_token="rt_test")
     client._client = httpx.AsyncClient(transport=MockTransport(handler), base_url=client.base_url)  # type: ignore[attr-defined]
     async with client as c:
         response = await c.get("/ping")

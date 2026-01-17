@@ -53,7 +53,6 @@ class KiketSDK:
         self,
         *,
         workspace_token: str | None = None,
-        extension_api_key: str | None = None,
         base_url: str | None = None,
         settings: Mapping[str, Any] | None = None,
         extension_id: str | None = None,
@@ -69,7 +68,6 @@ class KiketSDK:
 
         resolved_base_url = base_url or os.getenv("KIKET_BASE_URL") or "https://kiket.dev"
         resolved_workspace_token = workspace_token or os.getenv("KIKET_WORKSPACE_TOKEN")
-        resolved_extension_api_key = extension_api_key or os.getenv("KIKET_EXTENSION_API_KEY")
 
         manifest_settings: dict[str, Any] = manifest.settings_defaults() if manifest else {}
         if manifest and auto_env_secrets:
@@ -86,7 +84,6 @@ class KiketSDK:
 
         self.config = ExtensionConfig.from_mapping({
             "workspace_token": resolved_workspace_token,
-            "extension_api_key": resolved_extension_api_key,
             "base_url": resolved_base_url,
             "settings": merged_settings,
             "extension_id": resolved_extension_id,
@@ -99,7 +96,6 @@ class KiketSDK:
             feedback_hook=feedback_hook,
             extension_id=resolved_extension_id,
             extension_version=resolved_extension_version,
-            api_key=resolved_extension_api_key,
         )
         self.app = self._build_app()
 
@@ -213,7 +209,6 @@ class KiketSDK:
             async with KiketClient(
                 base_url=api_base_url,
                 workspace_token=self.config.workspace_token,
-                extension_api_key=self.config.extension_api_key,
                 runtime_token=auth_context.runtime_token,
             ) as client:
                 endpoints = ExtensionEndpoints(

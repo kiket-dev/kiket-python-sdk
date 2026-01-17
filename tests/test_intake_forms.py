@@ -24,7 +24,7 @@ def mock_client():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(default_handler), base_url=client.base_url
@@ -44,7 +44,7 @@ async def test_list_intake_forms_includes_project_id():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -57,7 +57,7 @@ async def test_list_intake_forms_includes_project_id():
     request = captured["request"]
     assert request.url.path.endswith("/api/v1/ext/intake_forms")
     assert request.url.params["project_id"] == "42"
-    assert request.headers["X-Kiket-API-Key"] == "ext_123"
+    assert request.headers["X-Kiket-Runtime-Token"] == "rt_123"
 
 
 @pytest.mark.asyncio
@@ -72,7 +72,7 @@ async def test_list_intake_forms_with_filters():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -109,7 +109,7 @@ async def test_get_intake_form():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -136,7 +136,7 @@ async def test_list_submissions():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -164,7 +164,7 @@ async def test_list_submissions_with_since():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -195,7 +195,7 @@ async def test_create_submission():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -230,7 +230,7 @@ async def test_approve_submission():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -261,7 +261,7 @@ async def test_reject_submission():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -298,7 +298,7 @@ async def test_stats():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     client._client = httpx.AsyncClient(
         transport=MockTransport(handler), base_url=client.base_url
@@ -319,7 +319,7 @@ def test_requires_project_id():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
 
     with pytest.raises(ValueError, match="project_id is required"):
@@ -332,7 +332,7 @@ async def test_get_requires_form_key():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     intake_forms = IntakeFormsClient(client, project_id=42)
 
@@ -345,7 +345,7 @@ def test_public_url_returns_url_for_public_form():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     intake_forms = IntakeFormsClient(client, project_id=42)
 
@@ -363,7 +363,7 @@ def test_public_url_returns_none_for_private_form():
     client = KiketClient(
         base_url="https://api.kiket.dev",
         workspace_token=None,
-        extension_api_key="ext_123",
+        runtime_token="rt_123",
     )
     intake_forms = IntakeFormsClient(client, project_id=42)
 

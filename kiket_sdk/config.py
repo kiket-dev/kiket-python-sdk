@@ -47,7 +47,6 @@ class ExtensionConfig:
     """
 
     workspace_token: str | None = None
-    extension_api_key: str | None = None
     base_url: str = "https://kiket.dev"
     settings: ExtensionSettings = field(default_factory=ExtensionSettings)
     extension_id: str | None = None
@@ -57,7 +56,6 @@ class ExtensionConfig:
     def from_mapping(cls, data: Mapping[str, Any]) -> ExtensionConfig:
         return cls(
             workspace_token=data.get("workspace_token"),
-            extension_api_key=data.get("extension_api_key"),
             base_url=data.get("base_url", "https://kiket.dev"),
             settings=ExtensionSettings(raw=data.get("settings", {})),
             extension_id=data.get("extension_id"),
