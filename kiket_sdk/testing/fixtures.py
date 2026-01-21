@@ -45,7 +45,7 @@ if pytest:  # pragma: no cover
 
     @pytest.fixture
     def kiket_sdk_fixture() -> KiketSDK:
-        return KiketSDK(webhook_secret="test", workspace_token="wk_test")
+        return KiketSDK(workspace_token="wk_test")
 
     @pytest.fixture
     def client(kiket_sdk_fixture: KiketSDK) -> TestClient:

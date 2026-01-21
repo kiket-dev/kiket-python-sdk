@@ -42,7 +42,6 @@ def test_sdk_auto_loads_manifest_and_env(tmp_path, monkeypatch):
 
     assert sdk.config.extension_id == "com.example.sdk"
     assert sdk.config.extension_version == "2.5.1"
-    assert sdk.config.webhook_secret == "whsec_123"
     assert sdk.config.workspace_token == "wk_env_token"
     assert sdk.config.settings.get("example.apiUrl") == "https://api.example.com"
     assert sdk.config.settings.get("example.apiKey") == "env-secret-456"

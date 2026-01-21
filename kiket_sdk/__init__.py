@@ -1,5 +1,6 @@
 """Kiket Python SDK public interface."""
 
+from .auth import AuthContext
 from .client import KiketClient
 from .config import ExtensionConfig
 from .custom_data import ExtensionCustomDataClient
@@ -11,7 +12,6 @@ from .notifications import (
     NotificationRequest,
     NotificationResponse,
 )
-from .auth import AuthContext
 from .routing import webhook
 from .sdk import HandlerContext, KiketSDK, create_app
 from .secrets import ExtensionSecretManager, SecretMetadata, SecretValue

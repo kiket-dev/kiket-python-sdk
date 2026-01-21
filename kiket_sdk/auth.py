@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -180,7 +180,7 @@ def build_auth_context(jwt_payload: JwtPayload, raw_payload: dict[str, Any]) -> 
 
     expires_at = None
     if jwt_payload.exp:
-        expires_at = datetime.fromtimestamp(jwt_payload.exp, tz=timezone.utc).isoformat()
+        expires_at = datetime.fromtimestamp(jwt_payload.exp, tz=UTC).isoformat()
 
     return AuthContext(
         runtime_token=raw_auth.get("runtime_token", ""),

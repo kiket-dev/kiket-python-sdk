@@ -7,7 +7,7 @@ import os
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -52,11 +52,10 @@ class TelemetryReporter:
     ) -> None:
         self.enabled = enabled and not _is_truthy(os.getenv("KIKET_SDK_TELEMETRY_OPTOUT"))
         resolved_url = telemetry_url or os.getenv("KIKET_SDK_TELEMETRY_URL")
+        self.telemetry_endpoint: str | None = None
         if resolved_url:
             base = resolved_url.rstrip("/")
             self.telemetry_endpoint = base if base.endswith("/telemetry") else f"{base}/telemetry"
-        else:
-            self.telemetry_endpoint = None
         self.feedback_hook = feedback_hook
         self.extension_id = extension_id
         self.extension_version = extension_version
@@ -107,7 +106,7 @@ class TelemetryReporter:
             "version": record.version,
             "status": record.status,
             "duration_ms": record.duration_ms,
-            "timestamp": datetime.fromtimestamp(record.timestamp, tz=datetime.UTC).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.timestamp, tz=UTC).isoformat(),
             "extension_id": record.extension_id,
             "extension_version": record.extension_version,
             "error_message": error_message,
