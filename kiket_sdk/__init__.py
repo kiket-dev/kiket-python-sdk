@@ -12,6 +12,15 @@ from .notifications import (
     NotificationRequest,
     NotificationResponse,
 )
+from .responses import (
+    AllowResponse,
+    DenyResponse,
+    PendingResponse,
+    Response,
+    allow,
+    deny,
+    pending,
+)
 from .routing import webhook
 from .sdk import HandlerContext, KiketSDK, create_app
 from .secrets import ExtensionSecretManager, SecretMetadata, SecretValue
@@ -39,4 +48,12 @@ __all__ = [
     "NotificationResponse",
     "ChannelValidationRequest",
     "ChannelValidationResponse",
+    # Response helpers
+    "Response",
+    "AllowResponse",
+    "DenyResponse",
+    "PendingResponse",
+    "allow",
+    "deny",
+    "pending",
 ]
