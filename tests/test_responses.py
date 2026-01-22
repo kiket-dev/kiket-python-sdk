@@ -1,7 +1,5 @@
 """Tests for response helpers."""
 
-import pytest
-
 from kiket_sdk.responses import allow, deny, pending
 
 
