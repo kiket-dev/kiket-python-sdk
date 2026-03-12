@@ -1,9 +1,10 @@
 """Helpers for interacting with the custom data API."""
+
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 from .client import KiketClient
@@ -31,22 +32,24 @@ class ExtensionCustomDataClient:
             self._path(module_key, table),
             params=self._base_params(limit=limit, filters=filters),
         )
-        return response.json()
+        return cast(Mapping[str, Any], response.json())
 
     async def get(self, module_key: str, table: str, record_id: str | int) -> Mapping[str, Any]:
         response = await self._client.get(
             self._path(module_key, table, record_id),
             params=self._base_params(),
         )
-        return response.json()
+        return cast(Mapping[str, Any], response.json())
 
-    async def create(self, module_key: str, table: str, record: Mapping[str, Any]) -> Mapping[str, Any]:
+    async def create(
+        self, module_key: str, table: str, record: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
         response = await self._client.post(
             self._path(module_key, table),
             params=self._base_params(),
             json={"record": record},
         )
-        return response.json()
+        return cast(Mapping[str, Any], response.json())
 
     async def update(
         self,
@@ -60,7 +63,7 @@ class ExtensionCustomDataClient:
             params=self._base_params(),
             json={"record": record},
         )
-        return response.json()
+        return cast(Mapping[str, Any], response.json())
 
     async def delete(self, module_key: str, table: str, record_id: str | int) -> None:
         await self._client.delete(

@@ -1,8 +1,9 @@
 """Helpers for managing intake forms and submissions via the Kiket API."""
+
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import quote
 
 from .client import KiketClient
@@ -10,6 +11,7 @@ from .client import KiketClient
 
 class IntakeFormField(TypedDict, total=False):
     """Shape of an intake form field."""
+
     key: str
     label: str
     field_type: str
@@ -21,6 +23,7 @@ class IntakeFormField(TypedDict, total=False):
 
 class IntakeForm(TypedDict, total=False):
     """Shape of an intake form response."""
+
     id: int
     key: str
     name: str
@@ -37,6 +40,7 @@ class IntakeForm(TypedDict, total=False):
 
 class IntakeSubmission(TypedDict, total=False):
     """Shape of an intake submission response."""
+
     id: int
     intake_form_id: int
     status: str
@@ -52,6 +56,7 @@ class IntakeSubmission(TypedDict, total=False):
 
 class IntakeFormStats(TypedDict, total=False):
     """Shape of intake form statistics."""
+
     total_submissions: int
     pending: int
     approved: int
@@ -62,11 +67,13 @@ class IntakeFormStats(TypedDict, total=False):
 
 class IntakeFormListResponse(TypedDict):
     """Response from listing intake forms."""
+
     data: list[IntakeForm]
 
 
 class IntakeSubmissionListResponse(TypedDict):
     """Response from listing submissions."""
+
     data: list[IntakeSubmission]
 
 
@@ -107,7 +114,7 @@ class IntakeFormsClient:
             params["limit"] = str(limit)
 
         response = await self._client.get("/api/v1/ext/intake_forms", params=params)
-        return response.json()
+        return cast(IntakeFormListResponse, response.json())
 
     async def get(self, form_key: str) -> IntakeForm:
         """
@@ -126,7 +133,7 @@ class IntakeFormsClient:
             f"/api/v1/ext/intake_forms/{quote(str(form_key), safe='')}",
             params=self._base_params(),
         )
-        return response.json()
+        return cast(IntakeForm, response.json())
 
     def public_url(self, form: IntakeForm) -> str | None:
         """
@@ -177,7 +184,7 @@ class IntakeFormsClient:
             f"/api/v1/ext/intake_forms/{quote(str(form_key), safe='')}/submissions",
             params=params,
         )
-        return response.json()
+        return cast(IntakeSubmissionListResponse, response.json())
 
     async def get_submission(self, form_key: str, submission_id: str | int) -> IntakeSubmission:
         """
@@ -199,7 +206,7 @@ class IntakeFormsClient:
             f"/api/v1/ext/intake_forms/{quote(str(form_key), safe='')}/submissions/{submission_id}",
             params=self._base_params(),
         )
-        return response.json()
+        return cast(IntakeSubmission, response.json())
 
     async def create_submission(
         self,
@@ -236,7 +243,7 @@ class IntakeFormsClient:
             f"/api/v1/ext/intake_forms/{quote(str(form_key), safe='')}/submissions",
             json=payload,
         )
-        return response.json()
+        return cast(IntakeSubmission, response.json())
 
     async def approve_submission(
         self,
@@ -269,7 +276,7 @@ class IntakeFormsClient:
             f"/api/v1/ext/intake_forms/{quote(str(form_key), safe='')}/submissions/{submission_id}/approve",
             json=payload,
         )
-        return response.json()
+        return cast(IntakeSubmission, response.json())
 
     async def reject_submission(
         self,
@@ -302,7 +309,7 @@ class IntakeFormsClient:
             f"/api/v1/ext/intake_forms/{quote(str(form_key), safe='')}/submissions/{submission_id}/reject",
             json=payload,
         )
-        return response.json()
+        return cast(IntakeSubmission, response.json())
 
     async def stats(
         self,
@@ -331,7 +338,7 @@ class IntakeFormsClient:
             f"/api/v1/ext/intake_forms/{quote(str(form_key), safe='')}/stats",
             params=params,
         )
-        return response.json()
+        return cast(IntakeFormStats, response.json())
 
     def _base_params(self) -> dict[str, str]:
         return {"project_id": self._project_id}

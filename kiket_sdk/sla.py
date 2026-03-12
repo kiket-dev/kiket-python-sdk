@@ -1,8 +1,9 @@
 """Helpers for querying workflow SLA events."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from .client import KiketClient
 
@@ -34,4 +35,4 @@ class ExtensionSlaEventsClient:
             params["limit"] = str(limit)
 
         response = await self._client.get("/api/v1/ext/sla/events", params=params)
-        return response.json()
+        return cast(Mapping[str, Any], response.json())

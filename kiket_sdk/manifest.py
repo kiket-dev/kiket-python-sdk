@@ -1,8 +1,10 @@
 """Utilities for loading extension manifest metadata."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import yaml
 
@@ -29,25 +31,17 @@ class ExtensionManifest:
 
     @property
     def extension_id(self) -> str | None:
-        return (
-            self.raw.get("id")
-            or self.raw.get("extension", {}).get("id")
-        )
+        return cast(str | None, self.raw.get("id") or self.raw.get("extension", {}).get("id"))
 
     @property
     def version(self) -> str | None:
-        return (
-            self.raw.get("version")
-            or self.raw.get("extension", {}).get("version")
+        return cast(
+            str | None, self.raw.get("version") or self.raw.get("extension", {}).get("version")
         )
 
     @property
     def delivery_secret(self) -> str | None:
-        delivery = (
-            self.raw.get("delivery")
-            or self.raw.get("extension", {}).get("delivery")
-            or {}
-        )
+        delivery = self.raw.get("delivery") or self.raw.get("extension", {}).get("delivery") or {}
         if isinstance(delivery, str):
             return resolve_env_reference(delivery)
 
